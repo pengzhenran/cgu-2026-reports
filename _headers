@@ -1,0 +1,25 @@
+# Cloudflare Pages 响应头规则（只有 Cloudflare Pages 会解析这个文件；
+# GitHub Pages 会把它当普通文件原样提供，因此不影响现有部署）。
+
+# 页面始终回源校验：重新部署后访客刷新即可看到新版，不必等缓存过期
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+# Service Worker 必须每次校验，否则新版脚本无法生效、缓存永远刷不掉
+/sw.js
+  Cache-Control: no-cache
+
+# 数据文件短期缓存 + 必须校验；真正的"秒开"由 sw.js 的离线缓存负责
+/cgu_data.js
+  Cache-Control: public, max-age=300, must-revalidate
+
+# 二维码基本不变，可以长缓存
+/qrcode.jpg
+  Cache-Control: public, max-age=604800
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

@@ -25,6 +25,7 @@
 | `build_data.mjs` | 数据归一化脚本（生成 `cgu_data.js`） |
 | `verify_data.mjs` | 数据一致性校验（保证压缩后与原始 JSON 逐字段等价） |
 | `qrcode.jpg` | 课题组公众号二维码 |
+| `_headers` | Cloudflare Pages 的缓存/安全响应头规则（GitHub Pages 会忽略）|
 
 ## 数据
 
@@ -46,9 +47,52 @@ node verify_data.mjs   # 逐条逐字段校验，必须输出 ✅ 再提交
 
 ## 部署
 
-- **GitHub Pages**：Settings → Pages → Source 选 `main` 分支、`/ (root)` 目录。
-- **更推荐 Cloudflare Pages / Vercel**：仓库直接连上去，构建命令留空、输出目录填 `/`。
-  国内访问 `github.io` 实测只有 5–14 KB/s，首屏要 10–45 秒；Cloudflare 会提供 brotli（119 KB）且路由更快。
+### GitHub Pages（当前线上）
+
+Settings → Pages → Source 选 `main` 分支、`/ (root)` 目录。纯静态、无构建步骤。
+
+### Cloudflare Pages（推荐，国内直连更快）
+
+这是纯静态站点，**没有构建步骤**。
+
+**方式 A：Git 集成（推荐，推送即自动部署）**
+
+1. 打开 <https://dash.cloudflare.com> → Workers & Pages → Create → Pages → Connect to Git
+2. 选择仓库 `pengzhenran/cgu-2026-reports`
+3. 构建设置填：
+   - Framework preset：**None**
+   - Build command：**留空**
+   - Build output directory：**/**
+4. Save and Deploy，稍后得到 `https://cgu-2026-reports.pages.dev`
+5. 之后每次 `git push` 都会自动重新部署；也可以绑自己的域名
+
+**方式 B：本地直传（wrangler，不需要 Git 集成）**
+
+```bash
+npx wrangler login
+npx wrangler pages project create cgu-2026-reports
+npx wrangler pages deploy . --project-name=cgu-2026-reports
+```
+
+> ⚠️ Direct Upload 建的项目**之后无法改成 Git 集成**，想要自动部署得另建项目。
+
+**`_headers`**：只有 Cloudflare Pages 会解析它（GitHub Pages 忽略），里面规定了
+`sw.js`、`index.html` 必须回源校验，`cgu_data.js` 短缓存，二维码长缓存。
+
+### 国内访问实测（2026-10-05，直连、不走代理）
+
+| 目标 | 文件 | 速度 |
+| --- | --- | --- |
+| `github.io`（Fastly） | `cgu_data.js` 154 KB | 2.7–12 KB/s（12–57 s）|
+| Cloudflare 边缘 | 187 KB 文件 | 145–149 KB/s（1.3 s）|
+| Cloudflare 测速端点 | 200 KB | 26–30 KB/s |
+
+即使是 Cloudflare 最保守的那个数，也比 `github.io` 直连快数倍。不过：
+
+- 免费版 Cloudflare 的境内访问仍是"环大陆"，节点可能落在洛杉矶/香港，速度随时段波动；
+- `*.pages.dev` 在国内可以解析和访问，但偶有 DNS 污染，长期用建议绑自己的域名；
+- 真要给国内访客稳定速度，只有**国内云 + 域名备案**这一条路（对象存储 + CDN）。
+- 如果你本机开了系统代理，浏览器测出来的速度和访客直连的速度完全是两回事，对比时要用 `curl`（默认不走系统代理）来测。
 
 ## 关于加载速度
 
