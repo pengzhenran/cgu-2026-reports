@@ -3,27 +3,70 @@
 一个**离线可用**的网页，收录 2026 年中国地球科学联合学术年会全部分会场专题报告（10月18–21日，杭州国际博览中心），
 支持按 **报告人姓名 / 报告题目 / 专题名** 实时检索。
 
+在线地址：<https://pengzhenran.github.io/cgu-2026-reports/>
+
 ## 功能
 
 - 检索框输入姓名/题目/专题名即时过滤（自动忽略空格差异，如「王林松」可命中名册中「王　林松」）
 - 类型筛选：特邀报告（标红 `*`）、学生报告（标绿 `◎`）、普通报告
 - 结果表格：专题（含专题名）｜报告题目｜报告人｜日期｜时间｜会议地点｜类型；关键词高亮，按日期+时间排序
-- 纯静态、自包含（数据已内联在 `index.html`），无需服务器、无需联网
+- 首屏只渲染前 100 条，点「显示更多」继续加载（避免 3244 行一次性塞进 DOM）
+- 检索条件会写进地址栏，可直接分享某个查询，如 `?q=重力&type=特邀报告`
+- 纯静态、无需服务器；首次访问后由 Service Worker 缓存，之后断网也能查
+
+## 文件
+
+| 文件 | 说明 |
+| --- | --- |
+| `index.html` | 页面本身：骨架 + 样式 + 逻辑，约 12 KB |
+| `cgu_data.js` | 页面实际加载的紧凑数据，约 390 KB（gzip 150 KB / brotli 119 KB），由 `build_data.mjs` 生成 |
+| `cgu_reports.json` | 原始结构化数据（3244 条，字段完整），便于二次利用 |
+| `sw.js` | Service Worker：离线缓存，版本号由构建脚本写入 |
+| `build_data.mjs` | 数据归一化脚本（生成 `cgu_data.js`） |
+| `verify_data.mjs` | 数据一致性校验（保证压缩后与原始 JSON 逐字段等价） |
+| `qrcode.jpg` | 课题组公众号二维码 |
 
 ## 数据
 
 - 共 **3244 条报告、149 个分会场专题**，抓取自年会官网专题页
   `https://www.cgu.org.cn/cugs/?q=node/109&subject=X&list=12`
-- 结构化数据见 `cgu_reports.json`
+- 原始字段：专题号、专题名、召集人、日期、地点、主持人、时间、序号、类型、题目、报告人
 
 ## 本地使用
 
-直接用浏览器打开 `index.html` 即可。
+直接用浏览器打开 `index.html` 即可（`cgu_data.js`、`qrcode.jpg` 需在同一目录）。
 
-## 部署（GitHub Pages）
+## 更新数据
 
-1. 将本仓库推送到 GitHub
-2. 仓库 Settings → Pages → Source 选择 `main` 分支、`/ (root)` 目录 → Save
-3. 稍候片刻，访问 `https://<用户名>.github.io/<仓库名>/` 即可在线查询
+```bash
+# 1. 重新抓取，覆盖 cgu_reports.json
+node build_data.mjs    # 生成 cgu_data.js，并自动更新 sw.js 里的 BUILD 版本号
+node verify_data.mjs   # 逐条逐字段校验，必须输出 ✅ 再提交
+```
+
+## 部署
+
+- **GitHub Pages**：Settings → Pages → Source 选 `main` 分支、`/ (root)` 目录。
+- **更推荐 Cloudflare Pages / Vercel**：仓库直接连上去，构建命令留空、输出目录填 `/`。
+  国内访问 `github.io` 实测只有 5–14 KB/s，首屏要 10–45 秒；Cloudflare 会提供 brotli（119 KB）且路由更快。
+
+## 关于加载速度
+
+一开始整站是「所有数据内联进 index.html 的单文件」，浏览器必须等 1.29 MB 的 HTML 全部下载完才能画表格，
+而且每次都把 3244 行一次性塞进 DOM。现在改成：
+
+| | 优化前 | 优化后 |
+| --- | --- | --- |
+| 首屏 HTML | 1286 KB（gzip 204 KB，含 base64 二维码） | 12.6 KB（gzip 5.2 KB） |
+| 数据 | 内联在 HTML 里 | 独立 `cgu_data.js` 390 KB（gzip 150 KB），`defer` 并行下载 |
+| DOM 行数 | 3244 行（约 2.3 万节点） | 100 行，按需追加 |
+| 纯前端耗时（本地、不含网络） | 2.4–3.3 s | 0.9–1.0 s |
+| 再次打开 | 2.0 s，且 10 分钟后缓存失效 | 约 1 s，走 Service Worker，断网也能用 |
+
+数据压缩靠归一化：专题名、地点、主持人、日期、类型在 3244 条里大量重复，
+`build_data.mjs` 把它们拆成字典表，报告行只存下标，体积降到原来的 28%。
+
+> 注意：首次访问仍要下载 150 KB 数据，网络差时这段等待无法靠前端消除；
+> 真正有效的手段是换掉 github.io（见上）以及依赖 Service Worker 缓存后续访问。
 
 数据来源：中国地球科学联合学术年会官网（cgu.org.cn / cugs.org.cn）。
