@@ -4,9 +4,13 @@
 
    更新数据时：先跑 node build_data.mjs（它会自动改写下面的 BUILD），再提交。
    只改本文件而不改 BUILD 时，缓存不会刷新。 */
-const BUILD = 'eb356b99f6';
+const BUILD = 'eb356b99f6.2';
 const CACHE = 'cgu-2026-' + BUILD;
-const ASSETS = ['./', './index.html', './cgu_data.js', './qrcode.jpg'];
+const ASSETS = [
+  './', './index.html', './cgu_data.js', './qrcode.jpg',
+  './favicon.ico', './icon-32.png', './icon-192.png', './icon-512.png',
+  './apple-touch-icon.png', './manifest.webmanifest',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

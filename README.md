@@ -26,6 +26,10 @@
 | `verify_data.mjs` | 数据一致性校验（保证压缩后与原始 JSON 逐字段等价） |
 | `qrcode.jpg` | 课题组公众号二维码 |
 | `_headers` | Cloudflare Pages 的缓存/安全响应头规则（GitHub Pages 会忽略）|
+| `favicon.ico`、`icon-32/192/512.png`、`apple-touch-icon.png` | 站点图标（标签页、收藏夹、手机主屏），由 `make_icons.ps1` 生成 |
+| `og-image.png` | 分享卡片封面 1200×630（微信 / QQ / 微博 / Twitter 都读它）|
+| `manifest.webmanifest` | PWA 清单：主屏图标、名称、主题色 |
+| `make_icons.ps1` | 图标与封面图生成脚本（Windows PowerShell + System.Drawing，改配色/文字后重跑即可）|
 
 ## 数据
 
@@ -105,6 +109,28 @@ npx wrangler pages deploy . --project-name=cgu-2026-reports
 - `*.pages.dev` 在国内可以解析和访问，但偶有 DNS 污染，长期用建议绑自己的域名；
 - 真要给国内访客稳定速度，只有**国内云 + 域名备案**这一条路（对象存储 + CDN）。
 - 如果你本机开了系统代理，浏览器测出来的速度和访客直连的速度完全是两回事，对比时要用 `curl`（默认不走系统代理）来测。
+
+## 图标与分享卡片
+
+| 位置 | 由什么控制 |
+| --- | --- |
+| 浏览器标签页 / 收藏夹 | `favicon.ico`（内嵌 16/32/48）+ `icon-32.png` |
+| iOS"添加到主屏" | `apple-touch-icon.png`（180×180）|
+| Android / PWA 主屏 | `manifest.webmanifest` + `icon-192/512.png` |
+| 微信 / QQ / 微博 / Twitter 的链接预览 | `<meta property="og:*">`，封面图 `og-image.png` |
+
+容易踩的点：
+
+1. **`og:image` 必须是绝对地址**。抓取器不执行 JS、也不解析相对路径，写成 `og-image.png` 等于没配。
+2. **换域名要同步改**。`index.html` 里这 4 处写死的是 `https://pengzhenran.github.io/cgu-2026-reports/`，
+   迁到 `*.pages.dev` 或自定义域名后要一起改，否则分享卡片会变成"有标题没图"。
+3. **封面图要能被抓取器快速取到**。`og-image.png` 有 117 KB，抓取器取不到或超时就退回纯文字卡片，
+   这也是建议尽快换到 Cloudflare Pages 的原因之一。
+4. 封面图的文字都排在中间 1000px 内，微信把封面裁成正方形也不会切掉标题。
+5. 微信的预览行为不完全可预测。如果配好 OG 后仍然没有缩略图，唯一能"锁定"缩略图的办法是用
+   微信 JS-SDK 的 `updateAppMessageShareData`，那需要已认证公众号 + 服务端签名，对本项目不划算 —— 先把 OG 配好就够。
+6. 改图标：编辑 `make_icons.ps1` 顶部配色/文字，然后 `powershell -ExecutionPolicy Bypass -File make_icons.ps1` 重新生成。
+   改完记得把 `sw.js` 里的 `BUILD` 改一下（例如 `.2` → `.3`），否则老访客的 Service Worker 还留着旧图标。
 
 ## 关于加载速度
 

@@ -1,0 +1,16 @@
+{
+  "name": "2026年中国地球科学联合学术年会 · 报告查询",
+  "short_name": "CGU2026",
+  "description": "3244 条分会场专题报告，按报告人姓名 / 报告题目 / 专题名即时检索。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f8",
+  "theme_color": "#1f4e79",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
