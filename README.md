@@ -55,6 +55,18 @@ Settings → Pages → Source 选 `main` 分支、`/ (root)` 目录。纯静态�
 
 这是纯静态站点，**没有构建步骤**。
 
+> ⚠️ **注意别建到 Workers 上去。** Cloudflare 控制台现在默认引导你建 Worker，给出的是
+> `xxx.<账号>.workers.dev` 地址，两者在国内的可达性完全不同（2026-10-05 实测）：
+>
+> | 域名 | 直连结果 |
+> | --- | --- |
+> | `*.pages.dev` | DNS 解析到真实 Cloudflare IP（172.66.47.60），HTTP 200，TTFB 0.6 s ✅ |
+> | `*.workers.dev` | DNS 被污染（同一小时内两次解析得到 115.126.100.160、199.96.63.53，都不是 Cloudflare 的 IP），连接直接失败 ❌ |
+>
+> 另外 Workers 静态资源需要仓库里有 `wrangler.jsonc`（配置 `assets.directory`）才能部署，Pages 什么都不用加。
+> 控制台入口：**Workers & Pages → Create application**，页面上找 **"Looking to deploy Pages?"** 那一行
+> （或直接打开 `https://dash.cloudflare.com/?to=/:account/pages/new`）。
+
 **方式 A：Git 集成（推荐，推送即自动部署）**
 
 1. 打开 <https://dash.cloudflare.com> → Workers & Pages → Create → Pages → Connect to Git
